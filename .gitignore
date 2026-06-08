@@ -1,0 +1,109 @@
+# =====================
+# Python
+# =====================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Virtualenv / tooling
+pip-wheel-metadata/
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Coverage / test
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+
+# Linting / type checking
+.mypy_cache/
+.ruff_cache/
+.pyre/
+
+# Packaging
+*.whl
+
+# =====================
+# FastAPI / app artifacts
+# =====================
+# Common local runtime caches
+*.sqlite3
+*.db
+*.s3
+
+# If you store embeddings / vector DBs locally
+chroma_db/
+
+# Uploads / generated files (keep secrets off commits)
+uploads/
+backend/uploads/
+
+# Reports / generated documents
+reports/
+backend/reports/
+
+# Local memory / state files
+backend/app/memory_store.json
+backend/app/memory/
+*.json
+!*/templates/*
+
+
+# =====================
+# Logs & OS
+# =====================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+
+# =====================
+# VS Code
+# =====================
+.vscode/
+
+# =====================
+# Node / Next.js
+# =====================
+node_modules/
+.next/
+out/
+
+# =====================
+# Next.js / build outputs
+# =====================
+*.env
+.env.*
+!.env.example
+
+# =====================
+# Credentials / secrets (extra safety)
+# =====================
+*.pem
+*.key
+*.crt
+*.cer
+*.pfx
+
+# =====================
+# Misc
+# =====================
+streamlit/.streamlit/  
+.streamlit/
+
+# IDE
+.idea/
+*.swp
+*~
+
