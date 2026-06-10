@@ -54,7 +54,6 @@ backend/reports/
 
 # Local memory / state files
 backend/app/memory_store.json
-backend/app/memory/
 *.json
 !*/templates/*
 
