@@ -1,0 +1,12 @@
+fastapi>=0.115
+pydantic>=2.8
+uvicorn>=0.30
+
+python-multipart>=0.0.18
+
+pdfplumber==0.9.0
+python-docx==0.8.11
+reportlab
+
+requests>=2.31.0
+groq>=0.0.27
