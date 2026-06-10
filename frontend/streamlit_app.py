@@ -380,7 +380,7 @@ elif _page == "Memory":
 
     st.markdown('<div class="page-header"><div class="page-title">📚 Research History</div><div class="page-subtitle">Browse and search all past research reports</div></div>', unsafe_allow_html=True)
 
-    response = requests.get(f"{API_BASE}/memory")
+    response = requests.get(f"{API_BASE}/api/memory")
 
     memories = response.json()
 
