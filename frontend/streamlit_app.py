@@ -331,7 +331,7 @@ if _page == "Research":
             with st.spinner("Agents working..."):
 
                 response = requests.post(
-                    f"{API_BASE}/research",
+                    f"{API_BASE}/api/research",
                     json={
                         "query": prompt,
                         "limit": 5,
@@ -341,9 +341,7 @@ if _page == "Research":
 
                 result = response.json()
 
-            st.write("DEBUG RESPONSE")
-            st.json(result)
-
+          
             answer = result["report"]["report"]
 
 
