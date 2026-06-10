@@ -424,7 +424,7 @@ elif _page == "Analytics":
 
     st.markdown('<div class="page-header"><div class="page-title">📊 Research Analytics</div><div class="page-subtitle">Usage, volume and topic insights</div></div>', unsafe_allow_html=True)
 
-    response = requests.get(f"{API_BASE}/analytics")
+    response = requests.get(f"{API_BASE}/api/analytics")
 
     data = response.json()
 
@@ -453,7 +453,7 @@ elif _page == "Agents":
 
     st.markdown('<div class="page-header"><div class="page-title">🤖 Agent Registry</div><div class="page-subtitle">All registered AI agents and their capabilities</div></div>', unsafe_allow_html=True)
 
-    response = requests.get(f"{API_BASE}/agents")
+    response = requests.get(f"{API_BASE}/api/agents")
 
     agents = response.json()
 
