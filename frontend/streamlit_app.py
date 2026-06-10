@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 
-API_BASE = "http://localhost:8000/api"
+API_BASE = "https://researchflow-0rqd.onrender.com"
 
 st.set_page_config(
     page_title="ResearchFlow AI",
