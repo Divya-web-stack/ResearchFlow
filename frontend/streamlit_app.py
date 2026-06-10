@@ -341,7 +341,12 @@ if _page == "Research":
 
                 result = response.json()
 
-            answer = result["report"]
+            st.write("DEBUG RESPONSE")
+            st.json(result)
+
+            answer = result["report"]["report"]
+
+
 
             st.markdown(answer)
 
