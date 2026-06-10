@@ -341,7 +341,7 @@ if _page == "Research":
 
                 result = response.json()
 
-            answer = result["report"]["report"]
+            answer = result["report"]
 
             st.markdown(answer)
 
