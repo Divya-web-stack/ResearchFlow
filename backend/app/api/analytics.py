@@ -1,6 +1,8 @@
 from fastapi import APIRouter
+from fastapi import Depends
 from collections import Counter
 
+from app.auth.store import get_current_user
 from app.memory.store import MemoryStore
 
 router = APIRouter(tags=["analytics"])
@@ -9,9 +11,13 @@ memory_store = MemoryStore()
 
 
 @router.get("/")
-def analytics():
+def analytics(
+    user: dict = Depends(get_current_user)
+):
 
-    memories = memory_store.list_memory()
+    memories = memory_store.list_memory_for_user(
+        user["id"]
+    )
 
     total_queries = len(memories)
 

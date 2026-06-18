@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 
+from app.auth.store import get_current_user
 from app.memory.store import MemoryStore
 from app.services.pdf_service import generate_pdf
 
@@ -10,9 +11,14 @@ memory_store = MemoryStore()
 
 
 @router.get("/{memory_id}")
-def export_pdf(memory_id: str):
+def export_pdf(
+    memory_id: str,
+    user: dict = Depends(get_current_user)
+):
 
-    memories = memory_store.list_memory()
+    memories = memory_store.list_memory_for_user(
+        user["id"]
+    )
 
     memory = next(
         (

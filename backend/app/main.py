@@ -10,6 +10,7 @@ from app.api.history import router as history_router
 from app.api.agents import router as agents_router
 from app.api.pdf import router as pdf_router
 from app.api.analytics import router as analytics_router
+from app.api.auth import router as auth_router
 
 app = FastAPI(
     title="AgentFlow AI",
@@ -26,6 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(chat_router, prefix="/api/chat")
+app.include_router(auth_router, prefix="/api/auth")
 app.include_router(research_router, prefix="/api/research")
 app.include_router(upload_router, prefix="/api/upload")
 app.include_router(document_router, prefix="/api/document")

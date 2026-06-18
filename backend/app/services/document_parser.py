@@ -15,8 +15,18 @@ except ImportError:
     docx = None
 
 
-def extract_text_from_document(document_id: str) -> str:
-    candidates = list(UPLOAD_DIR.glob(f"{document_id}_*"))
+def extract_text_from_document(
+    document_id: str,
+    user_id: str | None = None
+) -> str:
+
+    search_dir = (
+        UPLOAD_DIR / user_id
+        if user_id
+        else UPLOAD_DIR
+    )
+
+    candidates = list(search_dir.glob(f"{document_id}_*"))
     if not candidates:
         return "Document not found."
 

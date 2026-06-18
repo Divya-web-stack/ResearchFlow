@@ -5,6 +5,30 @@ class ChatRequest(BaseModel):
     message: str
 
 
+class SignupRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    created_at: str
+
+
+class AuthResponse(BaseModel):
+    token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
 class AgentWorkflowRequest(BaseModel):
     query: str
     limit: Optional[int] = 4

@@ -23,3 +23,14 @@ class MemoryStore:
 
     def list_memory(self) -> list[dict[str, Any]]:
         return self.load().get("memories", [])
+
+    def list_memory_for_user(
+        self,
+        user_id: str
+    ) -> list[dict[str, Any]]:
+
+        return [
+            memory
+            for memory in self.list_memory()
+            if memory.get("user_id") == user_id
+        ]

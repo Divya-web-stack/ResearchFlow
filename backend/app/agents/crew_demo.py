@@ -632,11 +632,14 @@ def memory_execute(
     query: str,
     research_results: dict[str, Any],
     summary: dict[str, Any],
+    user_id: str | None = None,
     **kwargs: Any
 ) -> dict[str, Any]:
 
     memory_item = {
     "id": str(uuid.uuid4()),
+
+    "user_id": user_id,
 
     "title": f"Research memory for: {query}",
 
@@ -667,10 +670,15 @@ def memory_execute(
 
 def memory_retrieval_execute(
     query: str,
+    user_id: str | None = None,
     **kwargs: Any
 ) -> dict[str, Any]:
 
-    memories = memory_store.list_memory()
+    memories = (
+        memory_store.list_memory_for_user(user_id)
+        if user_id
+        else []
+    )
 
     return {
         "query": query,
@@ -793,7 +801,8 @@ def manager_execute_stream(
         "message": "Retrieving related memories."
     }
     memory_context = memory_retrieval_agent.execute(
-        query=query
+        query=query,
+        user_id=kwargs.get("user_id")
     )
 
     resolved_query = conversation_output["resolved_query"]
@@ -856,6 +865,7 @@ def manager_execute_stream(
         query=query,
         research_results=research_output,
         summary=writer_output,
+        user_id=kwargs.get("user_id"),
         average_credibility=fact_check_output.get(
             "average_credibility",
             0
@@ -905,7 +915,8 @@ def manager_execute(
 )
     
     memory_context = memory_retrieval_agent.execute(
-    query=query
+    query=query,
+    user_id=kwargs.get("user_id")
 )
     resolved_query = conversation_output["resolved_query"]
 
@@ -937,6 +948,7 @@ def manager_execute(
         query=query,
         research_results=research_output,
         summary=writer_output,
+        user_id=kwargs.get("user_id"),
         average_credibility=
         fact_check_output.get(
             "average_credibility",

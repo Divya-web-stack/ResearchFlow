@@ -5,6 +5,20 @@ import json
 
 API_BASE = "https://researchflow-0rqd.onrender.com"
 
+
+def auth_headers():
+
+    return {
+        "Authorization": f"Bearer {st.session_state.auth_token}"
+    }
+
+
+if "auth_token" not in st.session_state:
+    st.session_state.auth_token = None
+
+if "auth_user" not in st.session_state:
+    st.session_state.auth_user = None
+
 st.set_page_config(
     page_title="ResearchFlow AI",
     page_icon="🧠",
@@ -273,6 +287,99 @@ hr { border-color: var(--border) !important; }
 """, unsafe_allow_html=True)
 
 # ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+if not st.session_state.auth_token:
+
+    st.markdown(
+        '<div class="page-header"><div class="page-title">ResearchFlow AI</div>'
+        '<div class="page-subtitle">Sign in to keep your research private across sessions</div></div>',
+        unsafe_allow_html=True
+    )
+
+    auth_tab, signup_tab = st.tabs(
+        [
+            "Login",
+            "Sign up"
+        ]
+    )
+
+    with auth_tab:
+
+        with st.form("login_form"):
+
+            email = st.text_input("Email")
+            password = st.text_input(
+                "Password",
+                type="password"
+            )
+            submitted = st.form_submit_button("Login")
+
+        if submitted:
+
+            response = requests.post(
+                f"{API_BASE}/api/auth/login",
+                json={
+                    "email": email,
+                    "password": password
+                }
+            )
+
+            if response.ok:
+                data = response.json()
+                st.session_state.auth_token = data["token"]
+                st.session_state.auth_user = data["user"]
+                st.session_state.messages = []
+                st.rerun()
+            else:
+                st.error(
+                    response.json().get(
+                        "detail",
+                        "Login failed."
+                    )
+                )
+
+    with signup_tab:
+
+        with st.form("signup_form"):
+
+            name = st.text_input("Name")
+            signup_email = st.text_input(
+                "Email",
+                key="signup_email"
+            )
+            signup_password = st.text_input(
+                "Password",
+                type="password",
+                key="signup_password"
+            )
+            signup_submitted = st.form_submit_button("Create account")
+
+        if signup_submitted:
+
+            response = requests.post(
+                f"{API_BASE}/api/auth/signup",
+                json={
+                    "name": name,
+                    "email": signup_email,
+                    "password": signup_password
+                }
+            )
+
+            if response.ok:
+                data = response.json()
+                st.session_state.auth_token = data["token"]
+                st.session_state.auth_user = data["user"]
+                st.session_state.messages = []
+                st.rerun()
+            else:
+                st.error(
+                    response.json().get(
+                        "detail",
+                        "Signup failed."
+                    )
+                )
+
+    st.stop()
+
 with st.sidebar:
     st.markdown("""
     <div class="brand-block">
@@ -280,6 +387,20 @@ with st.sidebar:
         <div class="brand-sub">Multi-Agent Platform</div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.caption(
+        f"Signed in as {st.session_state.auth_user['email']}"
+    )
+
+    if st.button("Logout"):
+        requests.post(
+            f"{API_BASE}/api/auth/logout",
+            headers=auth_headers()
+        )
+        st.session_state.auth_token = None
+        st.session_state.auth_user = None
+        st.session_state.messages = []
+        st.rerun()
 
     page = st.sidebar.radio(
         "Navigation",
@@ -340,8 +461,19 @@ if _page == "Research":
                     "limit": 5,
                     "chat_history": st.session_state.messages
                 },
+                headers=auth_headers(),
                 stream=True
             )
+
+            if not response.ok:
+                answer = response.json().get(
+                    "detail",
+                    "Please log in again."
+                )
+                answer_box.error(answer)
+                st.session_state.auth_token = None
+                st.session_state.auth_user = None
+                st.stop()
 
             for line in response.iter_lines():
 
@@ -405,8 +537,9 @@ elif _page == "Document Analysis":
             with st.spinner("Analyzing document..."):
 
                 response = requests.post(
-                    f"{API_BASE}/upload",
-                    files=files
+                    f"{API_BASE}/api/upload",
+                    files=files,
+                    headers=auth_headers()
                 )
 
                 st.json(response.json())
@@ -416,7 +549,10 @@ elif _page == "Memory":
 
     st.markdown('<div class="page-header"><div class="page-title">📚 Research History</div><div class="page-subtitle">Browse and search all past research reports</div></div>', unsafe_allow_html=True)
 
-    response = requests.get(f"{API_BASE}/api/memory")
+    response = requests.get(
+        f"{API_BASE}/api/memory",
+        headers=auth_headers()
+    )
 
     memories = response.json()
 
@@ -449,9 +585,20 @@ elif _page == "Memory":
 
                 st.markdown("---")
 
-                pdf_url = f"{API_BASE}/pdf/{memory['id']}"
+                pdf_response = requests.get(
+                    f"{API_BASE}/api/pdf/{memory['id']}",
+                    headers=auth_headers()
+                )
 
-                st.link_button("📥 Download PDF Report", pdf_url)
+                if pdf_response.ok:
+                    st.download_button(
+                        "Download PDF Report",
+                        data=pdf_response.content,
+                        file_name=f"research_report_{memory['id']}.pdf",
+                        mime="application/pdf"
+                    )
+                else:
+                    st.warning("PDF download is unavailable for this report.")
 
                 st.code(memory["id"], language="text")
 
@@ -460,7 +607,10 @@ elif _page == "Analytics":
 
     st.markdown('<div class="page-header"><div class="page-title">📊 Research Analytics</div><div class="page-subtitle">Usage, volume and topic insights</div></div>', unsafe_allow_html=True)
 
-    response = requests.get(f"{API_BASE}/api/analytics")
+    response = requests.get(
+        f"{API_BASE}/api/analytics",
+        headers=auth_headers()
+    )
 
     data = response.json()
 
