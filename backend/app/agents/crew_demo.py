@@ -447,6 +447,80 @@ def memory_retrieval_execute(
         "related_memories": memories[-5:]
     }
 
+def is_greeting_query(query: str) -> bool:
+
+    normalized_query = query.strip().lower()
+
+    greetings = {
+        "hi",
+        "hello",
+        "hey",
+        "greet",
+        "greetings",
+        "good morning",
+        "good afternoon",
+        "good evening"
+    }
+
+    return normalized_query in greetings
+
+
+def greeting_response(query: str) -> dict[str, Any]:
+
+    message = (
+        "Hello! I am your research assistant. "
+        "You can enter any topic, question, or comparison you want information on, "
+        "and I will research sources, check credibility, and generate a structured report."
+    )
+
+    return {
+        "query": query,
+        "workflow": [
+            "GreetingAgent"
+        ],
+        "conversation": {
+            "original_query": query,
+            "resolved_query": query
+        },
+        "memory_context": {
+            "query": query,
+            "related_memories": []
+        },
+        "plan": {
+            "query": query,
+            "tasks": [
+                "greet_user"
+            ]
+        },
+        "research": {
+            "query": query,
+            "search_query": "",
+            "results": [],
+            "highlights": []
+        },
+        "fact_check": {
+            "query": query,
+            "verifications": [],
+            "average_credibility": 0,
+            "summary": "No fact check needed for a greeting."
+        },
+        "report": {
+            "executive_summary": message,
+            "references": [],
+            "fact_check_summary": "No fact check needed for a greeting.",
+            "report_quality": {
+                "sources_used": 0,
+                "average_credibility": 0,
+                "research_depth": "Not applicable"
+            },
+            "report": message
+        },
+        "memory": {
+            "stored": False,
+            "reason": "Greeting messages are not stored as research memory."
+        }
+    }
+
 # ==========================
 # Manager Agent
 # ==========================
@@ -457,6 +531,9 @@ def manager_execute(
 ) -> dict[str, Any]:
     
     print("KWARGS =", kwargs)
+
+    if is_greeting_query(query):
+        return greeting_response(query)
     
     conversation_output = conversation_agent.execute(
     query=query,
@@ -508,6 +585,7 @@ def manager_execute(
     "query": query,
 
     "workflow": [
+        "ConversationAgent",
         "MemoryRetrievalAgent",
         "PlannerAgent",
         "ResearchAgent",

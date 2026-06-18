@@ -7,6 +7,21 @@ router = APIRouter(tags=["chat"])
 @router.post("/", response_model=ChatResponse)
 def chat(request: ChatRequest):
     result = manager_agent.execute(request.message)
-    summary = result.get("write", {}).get("summary", "Manager agent coordinated the research workflow.")
-    steps = [f"{step} executed" for step in result.get("steps", [])]
+    summary = (
+        result.get("report", {})
+        .get("executive_summary",
+             "Manager agent coordinated the research workflow.")
+    )
+    steps = [
+        f"{step} executed"
+        for step in result.get("workflow", [])
+    ]
     return ChatResponse(summary=summary, steps=steps, confidence=0.92)
+
+
+
+
+
+
+
+
