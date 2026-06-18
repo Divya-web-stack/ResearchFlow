@@ -395,6 +395,236 @@ Please verify:
         "report": report_text
     }
 
+
+def writer_execute_stream(
+    research_results: dict[str, Any],
+    fact_check: dict[str, Any],
+    **kwargs: Any
+):
+
+    results = research_results.get("results", [])
+    query = research_results.get("query", "")
+
+    references = []
+    source_text = ""
+    credibility_text = ""
+
+    for verification in fact_check.get(
+        "verifications",
+        []
+    ):
+
+        credibility_text += (
+            f"\nSource: {verification.get('claim')}"
+            f"\nCredibility Score: {verification.get('credibility_score')}"
+            f"\nCredibility Level: {verification.get('credibility_level')}\n"
+        )
+
+    for idx, item in enumerate(results, start=1):
+
+        title = item.get("title", "")
+        snippet = item.get("snippet", "")
+        url = item.get("url", "")
+
+        source_text += f"""
+Source {idx}
+
+Title:
+{title}
+
+Snippet:
+{snippet}
+
+URL:
+{url}
+
+"""
+
+        references.append(
+            {
+                "title": title,
+                "url": url
+            }
+        )
+
+    avg_credibility = fact_check.get(
+        "average_credibility",
+        0
+    )
+
+    prompt = f"""
+You are a senior research analyst.
+
+Research Topic:
+{query}
+
+Verified Sources:
+{source_text}
+
+Fact Checker Assessment:
+{credibility_text}
+
+Average Credibility Score:
+{avg_credibility}
+
+IMPORTANT:
+
+- Prioritize sources with credibility scores above 85.
+- Use lower credibility sources only as supporting evidence.
+- If sources disagree, trust higher credibility sources.
+- Do not simply summarize articles.
+- Synthesize information from all sources.
+
+Generate a professional research report using the following structure:
+
+# Executive Summary
+
+Provide a concise overview.
+
+# Key Insights
+
+Identify the most important findings.
+
+# Applications / Use Cases
+
+Describe practical and real-world applications.
+
+# Challenges and Risks
+
+Discuss limitations, concerns, and barriers.
+
+# Research Gaps
+
+Identify missing knowledge, unanswered questions,
+or areas requiring further investigation.
+
+# Recommendations for Hospitals / Organizations
+
+Provide implementation recommendations.
+
+# Recommendations for Researchers
+
+Suggest future research directions.
+
+# Recommendations for Policymakers
+
+Provide governance and regulatory suggestions.
+
+# Source Reliability Assessment
+
+Discuss which sources were most reliable and why.
+
+Mention the average credibility score.
+
+# Conclusion
+
+Summarize the overall findings.
+
+Requirements:
+
+- Professional report style.
+- Use markdown formatting.
+- Be analytical, not descriptive.
+- Mention evidence quality.
+- Explain trade-offs where relevant.
+"""
+
+    report_text = ""
+
+    try:
+
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.2,
+            stream=True
+        )
+
+        for chunk in response:
+
+            token = (
+                chunk
+                .choices[0]
+                .delta
+                .content
+            )
+
+            if token:
+                report_text += token
+                yield {
+                    "type": "token",
+                    "content": token
+                }
+
+    except Exception as e:
+
+        report_text = f"""
+# Report Generation Failed
+
+Error:
+{str(e)}
+
+Please verify:
+- GROQ_API_KEY is configured
+- Internet connection is available
+- Groq service is reachable
+"""
+
+        yield {
+            "type": "token",
+            "content": report_text
+        }
+
+    references_markdown = "\n".join(
+        [
+            f"- [{ref['title']}]({ref['url']})"
+            for ref in references
+        ]
+    )
+
+    references_section = f"""
+
+# References
+
+{references_markdown}
+"""
+
+    report_text += references_section
+
+    yield {
+        "type": "token",
+        "content": references_section
+    }
+
+    report_quality = {
+        "sources_used": len(results),
+        "average_credibility": avg_credibility,
+        "research_depth": (
+            "High"
+            if len(results) >= 5
+            else "Medium"
+        )
+    }
+
+    yield {
+        "type": "writer_result",
+        "data": {
+            "executive_summary": report_text[:500],
+            "references": references,
+            "fact_check_summary": fact_check.get(
+                "summary",
+                ""
+            ),
+            "report_quality": report_quality,
+            "report": report_text
+        }
+    }
+
 # ==========================
 # Memory Agent
 # ==========================
@@ -518,6 +748,140 @@ def greeting_response(query: str) -> dict[str, Any]:
         "memory": {
             "stored": False,
             "reason": "Greeting messages are not stored as research memory."
+        }
+    }
+
+
+def manager_execute_stream(
+    query: str,
+    limit: int = 5,
+    **kwargs: Any
+):
+
+    if is_greeting_query(query):
+
+        response = greeting_response(query)
+
+        yield {
+            "type": "status",
+            "agent": "GreetingAgent",
+            "message": "Greeting detected."
+        }
+        yield {
+            "type": "token",
+            "content": response["report"]["report"]
+        }
+        yield {
+            "type": "done",
+            "data": response
+        }
+        return
+
+    yield {
+        "type": "status",
+        "agent": "ConversationAgent",
+        "message": "Resolving conversation context."
+    }
+    conversation_output = conversation_agent.execute(
+        query=query,
+        chat_history=kwargs.get("chat_history", [])
+    )
+
+    yield {
+        "type": "status",
+        "agent": "MemoryRetrievalAgent",
+        "message": "Retrieving related memories."
+    }
+    memory_context = memory_retrieval_agent.execute(
+        query=query
+    )
+
+    resolved_query = conversation_output["resolved_query"]
+
+    yield {
+        "type": "status",
+        "agent": "PlannerAgent",
+        "message": "Creating research plan."
+    }
+    plan_output = planner_agent.execute(
+        query=query
+    )
+
+    yield {
+        "type": "status",
+        "agent": "ResearchAgent",
+        "message": "Searching for sources."
+    }
+    research_output = research_agent.execute(
+        query=resolved_query,
+        plan=plan_output,
+        limit=limit
+    )
+
+    yield {
+        "type": "status",
+        "agent": "FactCheckerAgent",
+        "message": "Checking source credibility."
+    }
+    fact_check_output = fact_checker_agent.execute(
+        research_results=research_output
+    )
+
+    yield {
+        "type": "status",
+        "agent": "WriterAgent",
+        "message": "Writing the research report."
+    }
+
+    writer_output = {}
+
+    for event in writer_execute_stream(
+        research_results=research_output,
+        fact_check=fact_check_output,
+        memory_context=memory_context
+    ):
+
+        if event.get("type") == "writer_result":
+            writer_output = event["data"]
+            continue
+
+        yield event
+
+    yield {
+        "type": "status",
+        "agent": "MemoryAgent",
+        "message": "Saving research memory."
+    }
+    memory_output = memory_agent.execute(
+        query=query,
+        research_results=research_output,
+        summary=writer_output,
+        average_credibility=fact_check_output.get(
+            "average_credibility",
+            0
+        )
+    )
+
+    yield {
+        "type": "done",
+        "data": {
+            "query": query,
+            "workflow": [
+                "ConversationAgent",
+                "MemoryRetrievalAgent",
+                "PlannerAgent",
+                "ResearchAgent",
+                "FactCheckerAgent",
+                "WriterAgent",
+                "MemoryAgent"
+            ],
+            "conversation": conversation_output,
+            "memory_context": memory_context,
+            "plan": plan_output,
+            "research": research_output,
+            "fact_check": fact_check_output,
+            "report": writer_output,
+            "memory": memory_output
         }
     }
 

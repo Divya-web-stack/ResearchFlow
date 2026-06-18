@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
+import json
 
 API_BASE = "https://researchflow-0rqd.onrender.com"
 
@@ -328,25 +329,60 @@ if _page == "Research":
 
         with st.chat_message("assistant"):
 
-            with st.spinner("Agents working..."):
+            answer = ""
+            answer_box = st.empty()
+            status_box = st.empty()
 
-                response = requests.post(
-                    f"{API_BASE}/api/research",
-                    json={
-                        "query": prompt,
-                        "limit": 5,
-                        "chat_history": st.session_state.messages
-                    }
-                )
+            response = requests.post(
+                f"{API_BASE}/api/research/stream",
+                json={
+                    "query": prompt,
+                    "limit": 5,
+                    "chat_history": st.session_state.messages
+                },
+                stream=True
+            )
 
-                result = response.json()
+            for line in response.iter_lines():
 
-          
-            answer = result["report"]["report"]
+                if not line:
+                    continue
 
+                decoded_line = line.decode("utf-8")
 
+                if not decoded_line.startswith("data: "):
+                    continue
 
-            st.markdown(answer)
+                event = json.loads(decoded_line[6:])
+                event_type = event.get("type")
+
+                if event_type == "status":
+                    status_box.caption(
+                        f"{event.get('agent')}: {event.get('message')}"
+                    )
+
+                elif event_type == "token":
+                    answer += event.get("content", "")
+                    answer_box.markdown(answer)
+
+                elif event_type == "error":
+                    answer = event.get(
+                        "message",
+                        "Streaming failed."
+                    )
+                    answer_box.error(answer)
+                    break
+
+                elif event_type == "done":
+                    status_box.empty()
+                    result = event.get("data", {})
+                    answer = (
+                        result
+                        .get("report", {})
+                        .get("report", answer)
+                    )
+                    answer_box.markdown(answer)
+                    break
 
         st.session_state.messages.append({"role": "assistant", "content": answer})
 
